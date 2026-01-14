@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전자회로: BJT 완전 정복 (한글 영상 포함)</title>
+    <style>
+        /* --- 1. 디자인 시스템 (White & Vibrant) --- */
+        :root {
+            --bg-color: #ffffff;
+            --text-main: #2d3436;
+            --text-sub: #636e72;
+            --primary: #0984e3;    /* 밝은 파랑 */
+            --accent: #d63031;     /* 강렬한 빨강 */
+            --success: #00b894;    /* 민트 초록 */
+            --card-bg: #f5f6fa;
+            --shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 2. 슬라이드 구조 --- */
+        .slide-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .slide {
+            position: absolute;
+            width: 85%;
+            max-width: 1100px;
+            height: 75%;
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: var(--shadow);
+            border: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            opacity: 0;
+            transform: translateX(100px) scale(0.9);
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            pointer-events: none;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            pointer-events: all;
+            z-index: 10;
+        }
+
+        .slide.prev {
+            opacity: 0;
+            transform: translateX(-100px) scale(0.9);
+        }
+
+        /* --- 3. 비디오 컨테이너 --- */
+        .video-wrapper {
+            position: relative;
+            width: 80%;
+            max-width: 800px;
+            padding-bottom: 45%; /* 16:9 비율 */
+            height: 0;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            background: #000;
+            margin: 20px 0;
+            border: 5px solid #000;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+
+        /* --- 4. 타이포그래피 & 요소 --- */
+        h1 { font-size: 3rem; margin: 0; color: var(--primary); letter-spacing: -1px; }
+        h2 { font-size: 2rem; margin-bottom: 20px; color: var(--text-main); }
+        .emoji-lg { font-size: 5rem; margin-bottom: 20px; animation: bounce 2s infinite; display: inline-block; }
+        
+        .concept-box {
+            background: var(--card-bg);
+            padding: 20px 40px;
+            border-radius: 15px;
+            margin: 15px 0;
+            border-left: 5px solid var(--primary);
+            font-size: 1.3rem;
+            width: 80%;
+        }
+
+        /* --- 5. 인터랙션 (Click to Reveal) --- */
+        .step-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+        .step-item.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 시뮬레이션 UI */
+        .sim-container {
+            display: flex; gap: 40px; align-items: center; background: #f1f2f6;
+            padding: 30px; border-radius: 20px; width: 80%; justify-content: center;
+        }
+        input[type=range] {
+            -webkit-appearance: none; width: 200px; height: 10px;
+            border-radius: 5px; background: #d3d3d3; outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 25px; height: 25px;
+            border-radius: 50%; background: var(--primary); cursor: pointer; transition: transform 0.2s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        .bulb-display { font-size: 6rem; filter: grayscale(100%); transition: all 0.3s; }
+        .bulb-display.active { filter: grayscale(0%); text-shadow: 0 0 50px gold; transform: scale(1.1); }
+
+        /* 퀴즈 UI */
+        .quiz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; margin-top: 20px; }
+        .quiz-btn {
+            padding: 20px; font-size: 1.2rem; border: 2px solid #dfe6e9;
+            background: white; border-radius: 15px; cursor: pointer; transition: 0.3s;
+            color: var(--text-main); font-weight: bold;
+        }
+        .quiz-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-5px); }
+        .quiz-btn.correct { background: var(--success); color: white; border-color: var(--success); }
+        .quiz-btn.wrong { background: var(--text-sub); color: white; opacity: 0.5; }
+
+        /* 하단 네비게이션 */
+        .control-bar {
+            padding: 15px; display: flex; justify-content: center; gap: 20px;
+            background: white; border-top: 1px solid #eee;
+        }
+        .nav-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-sub); transition: 0.3s; }
+        .nav-btn:hover { color: var(--primary); transform: scale(1.2); }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-20px);}
+            60% {transform: translateY(-10px);}
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); }
+        }
+        #confetti { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+    <canvas id="confetti"></canvas>
+
+    <div class="slide-container">
+        
+        <div class="slide active">
+            <span class="emoji-lg">👋</span>
+            <h1>전자회로: BJT 완전 정복</h1>
+            <p style="font-size: 1.5rem; color: var(--text-sub);">전기전자과 2학년 | 선생님: 김진경</p>
+            <div class="concept-box" style="animation: float 3s infinite ease-in-out;">
+                "트랜지스터 하나로 세상을 바꾼다!" 🚀
+            </div>
+            <p style="margin-top:30px; font-size: 0.9rem; color:#aaa;">키보드 [➡️] 또는 [Space]를 눌러 시작하세요</p>
+        </div>
+
+        <div class="slide">
+            <span class="emoji-lg">🎯</span>
+            <h2>오늘의 수업 목표</h2>
+            <div style="width: 80%; text-align: left;">
+                <div class="concept-box step-item">1️⃣ <strong>BJT의 구조</strong> (NPN, PNP)를 구분한다.</div>
+                <div class="concept-box step-item">2️⃣ <strong>증폭 작용</strong>의 원리를 설명할 수 있다.</div>
+                <div class="concept-box step-item">3️⃣ <strong>전류의 흐름</strong> ($I_E = I_B + I_C$)을 계산한다.</div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <span class="emoji-lg">📺</span>
+            <h2>영상으로 보는 트랜지스터의 원리</h2>
+            <p>물이 흐르는 것과 전기가 흐르는 것이 정말 비슷하죠?</p>
+            
+            <div class="video-wrapper">
+                <iframe src="https://www.youtube.com/embed/BQ-jTyaBykI?si=KoreanMode" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-sub);">※ 영상 출처: 트랜지스터 작동 방식 (YouTube)</p>
+        </div>
+
+        <div class="slide">
+            <h2>BJT = 샌드위치? 🥪</h2>
+            <div style="display: flex; gap: 50px; justify-content: center; width: 100%;">
+                <div class="step-item">
+                    <div style="font-size: 8rem; line-height: 1;">🥪</div>
+                    <h3>N - P - N</h3>
+                    <p>전류가 밖으로 나가는 화살표!</p>
+                </div>
+                <div class="step-item">
+                    <div style="font-size: 8rem; line-height: 1;">🍔</div>
+                    <h3>P - N - P</h3>
+                    <p>전류가 안으로 들어오는 화살표!</p>
+                </div>
+            </div>
+            <div class="concept-box step-item" style="margin-top: 30px;">
+                <strong>E (Emitter)</strong> 방출한다! / <strong>B (Base)</strong> 조절한다! / <strong>C (Collector)</strong> 모은다!
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>🎛️ BJT 증폭 실험실</h2>
+            <p>베이스 전류($I_B$)를 조금만 올려도 컬렉터($I_C$)가 폭발합니다!</p>
+            
+            <div class="sim-container">
+                <div style="text-align: center;">
+                    <label>Base 전류 조절</label><br>
+                    <input type="range" id="sim-slider" min="0" max="100" value="0">
+                    <p style="font-weight: bold; color: var(--primary);">$I_B$: <span id="val-ib">0</span> mA</p>
+                </div>
+                <div style="font-size: 2rem;">👉</div>
+                <div style="text-align: center;">
+                    <div class="bulb-display" id="sim-bulb">💡</div>
+                    <p style="font-weight: bold; color: var(--accent);">$I_C$: <span id="val-ic">0</span> A</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Q1. BJT의 3단자가 아닌 것은? 🤔</h2>
+            <div class="quiz-grid">
+                <button class="quiz-btn" onclick="check(this, false)">Emitter (이미터)</button>
+                <button class="quiz-btn" onclick="check(this, true)">Gate (게이트)</button>
+                <button class="quiz-btn" onclick="check(this, false)">Base (베이스)</button>
+                <button class="quiz-btn" onclick="check(this, false)">Collector (컬렉터)</button>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Q2. 화살표가 밖으로 나가는(Not Pointing in) 기호는?</h2>
+            <div class="quiz-grid">
+                <button class="quiz-btn" onclick="check(this, true)">NPN 형</button>
+                <button class="quiz-btn" onclick="check(this, false)">PNP 형</button>
+            </div>
+            <div class="concept-box step-item" style="margin-top:20px;">힌트: <strong>N</strong>ot <strong>P</strong>ointing i<strong>N</strong></div>
+        </div>
+
+        <div class="slide">
+            <h2>Q3. 수도꼭지의 손잡이 역할을 하는 단자는?</h2>
+            <div class="quiz-grid">
+                <button class="quiz-btn" onclick="check(this, false)">Emitter</button>
+                <button class="quiz-btn" onclick="check(this, true)">Base</button>
+                <button class="quiz-btn" onclick="check(this, false)">Collector</button>
+                <button class="quiz-btn" onclick="check(this, false)">Body</button>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Q4. 전류 관계식으로 옳은 것은?</h2>
+            <div style="font-size: 1.5rem; margin: 20px;">$$ I_E = \text{?} $$</div>
+            <div class="quiz-grid">
+                <button class="quiz-btn" onclick="check(this, true)">$$ I_B + I_C $$</button>
+                <button class="quiz-btn" onclick="check(this, false)">$$ I_C - I_B $$</button>
+                <button class="quiz-btn" onclick="check(this, false)">$$ I_B \times I_C $$</button>
+                <button class="quiz-btn" onclick="check(this, false)">$$ I_C / I_B $$</button>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2>Q5. 스위치 작용 중 '전류가 흐르지 않는' 상태는?</h2>
+            <div class="quiz-grid">
+                <button class="quiz-btn" onclick="check(this, false)">포화 (Saturation)</button>
+                <button class="quiz-btn" onclick="check(this, false)">활성 (Active)</button>
+                <button class="quiz-btn" onclick="check(this, true)">차단 (Cut-off)</button>
+                <button class="quiz-btn" onclick="check(this, false)">항복 (Breakdown)</button>
+            </div>
+        </div>
+
+        <div class="slide">
+            <span class="emoji-lg">🎉</span>
+            <h1>수업 끝! 수고했습니다.</h1>
+            <p>오늘 배운 내용을 영상과 함께 복습해보세요.</p>
+            <button class="quiz-btn" onclick="location.reload()" style="background:var(--primary); color:white; border:none; margin-top:30px;">처음으로 돌아가기</button>
+        </div>
+
+    </div>
+
+    <div class="control-bar">
+        <button class="nav-btn" onclick="move(-1)">❮</button>
+        <span id="page-indicator" style="align-self:center; font-weight:bold; color:var(--text-sub);">1 / 10</span>
+        <button class="nav-btn" onclick="move(1)">❯</button>
+    </div>
+
+    <script>
+        // --- 1. 슬라이드 및 단계별 진행 ---
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const indicator = document.getElementById('page-indicator');
+
+        function updateSlide() {
+            slides.forEach((slide, idx) => {
+                slide.classList.remove('active', 'prev');
+                if (idx === currentSlide) slide.classList.add('active');
+                else if (idx < currentSlide) slide.classList.add('prev');
+            });
+            indicator.textContent = `${currentSlide + 1} / ${slides.length}`;
+            
+            stopVideoIfNeeded();
+        }
+
+        function stopVideoIfNeeded() {
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                 // 영상 슬라이드에서 벗어나면 영상을 멈추는 효과 (선택 사항)
+                 // iframe.src = iframe.src; 
+            });
+        }
+
+        function move(dir) {
+            const activeSlide = slides[currentSlide];
+            const hiddenSteps = activeSlide.querySelectorAll('.step-item:not(.show)');
+
+            if (dir === 1 && hiddenSteps.length > 0) {
+                hiddenSteps[0].classList.add('show');
+            } else {
+                const next = currentSlide + dir;
+                if (next >= 0 && next < slides.length) {
+                    currentSlide = next;
+                    updateSlide();
+                }
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight' || e.key === ' ') move(1);
+            if(e.key === 'ArrowLeft') move(-1);
+        });
+
+        // --- 2. 시뮬레이션 ---
+        const slider = document.getElementById('sim-slider');
+        const bulb = document.getElementById('sim-bulb');
+        const valIb = document.getElementById('val-ib');
+        const valIc = document.getElementById('val-ic');
+
+        slider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            valIb.textContent = val;
+            valIc.textContent = (val * 0.5).toFixed(1);
+            if (val > 0) {
+                bulb.classList.add('active');
+                bulb.style.filter = `grayscale(0%) brightness(${100 + val}%) drop-shadow(0 0 ${val/2}px gold)`;
+                bulb.style.transform = `scale(${1 + val/200})`;
+            } else {
+                bulb.classList.remove('active');
+                bulb.style.filter = 'grayscale(100%)';
+                bulb.style.transform = 'scale(1)';
+            }
+        });
+
+        // --- 3. 퀴즈 & 폭죽 ---
+        function check(btn, isCorrect) {
+            if (isCorrect) {
+                btn.classList.add('correct');
+                btn.innerHTML += " ⭕";
+                fireConfetti();
+            } else {
+                btn.classList.add('wrong');
+                btn.innerHTML += " ❌";
+                btn.parentElement.classList.add('shake');
+                setTimeout(() => btn.parentElement.classList.remove('shake'), 500);
+            }
+            const siblings = btn.parentElement.querySelectorAll('button');
+            siblings.forEach(b => b.disabled = true);
+        }
+
+        const canvas = document.getElementById('confetti');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        let particles = [];
+        
+        function fireConfetti() {
+            for(let i=0; i<100; i++) {
+                particles.push({
+                    x: window.innerWidth / 2, y: window.innerHeight / 2,
+                    vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20,
+                    life: 100, color: `hsl(${Math.random()*360}, 100%, 50%)`
+                });
+            }
+            animateConfetti();
+        }
+        function animateConfetti() {
+            if(particles.length === 0) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, index) => {
+                p.x += p.vx; p.y += p.vy; p.life--; p.vy += 0.5;
+                ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 8, 8);
+                if(p.life <= 0) particles.splice(index, 1);
+            });
+            requestAnimationFrame(animateConfetti);
+        }
+
+        updateSlide();
+    </script>
+</body>
+</html>
