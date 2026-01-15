@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XG5000 타이머 마스터하기 ⏱️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f3f4f6;
+            overflow: hidden; /* 스크롤 방지 */
+        }
+
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .slide {
+            width: 90%;
+            max-width: 1000px;
+            height: 85vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 40px;
+            display: none; /* 기본적으로 숨김 */
+            flex-direction: column;
+            overflow-y: auto;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .nav-btn {
+            position: absolute;
+            bottom: 30px;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .prev-btn { left: 5%; background-color: #e5e7eb; color: #374151; }
+        .next-btn { right: 5%; background-color: #3b82f6; color: white; }
+        .nav-btn:hover { transform: scale(1.05); }
+        .nav-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 시뮬레이션 스타일 */
+        .sim-box {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .plc-lamp {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #cbd5e1;
+            margin: 0 auto;
+            transition: background-color 0.3s;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        }
+        .plc-lamp.on {
+            background-color: #ef4444; /* Red Light */
+            box-shadow: 0 0 20px #ef4444;
+        }
+        
+        .sim-btn {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .sim-btn:active { transform: scale(0.98); }
+
+        .progress-bar-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #3b82f6;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* 퀴즈 스타일 */
+        .quiz-option {
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quiz-option:hover { background-color: #eff6ff; border-color: #3b82f6; }
+        .quiz-option.correct { background-color: #dcfce7; border-color: #22c55e; color: #15803d; }
+        .quiz-option.wrong { background-color: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+
+        .highlight { color: #2563eb; font-weight: bold; }
+        .code-block {
+            background: #1e293b;
+            color: #fbbf24;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="slide-container">
+        
+        <div class="slide active">
+            <div class="h-full flex flex-col justify-center items-center text-center">
+                <span class="text-6xl mb-6">⏱️</span>
+                <h1 class="text-5xl font-bold text-gray-800 mb-4">XG5000 타이머 함수 정복</h1>
+                <p class="text-xl text-gray-600 mb-8">전기전자제어과 2학년 | PLC 프로그래밍 기초</p>
+                <div class="bg-blue-50 px-8 py-4 rounded-xl border border-blue-200">
+                    <p class="text-blue-600 font-bold">"시간을 지배하는 자가 자동제어를 지배한다!"</p>
+                </div>
+                <p class="mt-8 text-gray-400 text-sm">오른쪽 하단의 [다음] 버튼을 눌러 시작하세요 👉</p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="text-3xl font-bold text-gray-800 mb-8 border-b pb-4"><i class="fas fa-bullseye text-red-500 mr-2"></i> 오늘의 학습 목표</h2>
+            <div class="space-y-6">
+                <div class="flex items-start bg-gray-50 p-6 rounded-xl">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-4 flex-shrink-0">1</div>
+                    <p class="text-xl">PLC 프로그램에서 <span class="highlight">TON(온딜레이)</span>과 <span class="highlight">TOFF(오프딜레이)</span>의 차이를 명확히 설명할 수 있다.</p>
+                </div>
+                <div class="flex items-start bg-gray-50 p-6 rounded-xl">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-4 flex-shrink-0">2</div>
+                    <p class="text-xl">XG5000에서 타이머 명령어의 <span class="highlight">입력 형식</span>을 올바르게 작성할 수 있다.</p>
+                </div>
+                <div class="flex items-start bg-gray-50 p-6 rounded-xl">
+                    <div class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-4 flex-shrink-0">3</div>
+                    <p class="text-xl">타이머를 활용하여 간단한 <span class="highlight">시간 지연 회로</span>를 구성할 수 있다.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">1. TON (On-Delay Timer)</h2>
+            <p class="text-lg text-gray-600 mb-4">입력 신호가 들어오고 <span class="highlight">설정된 시간이 지난 후</span> 출력이 켜집니다.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-4">
+                        <h3 class="font-bold text-yellow-700 mb-2">💡 핵심 동작</h3>
+                        <ul class="list-disc list-inside text-gray-700 space-y-2">
+                            <li>입력(P0)이 ON 되면 타이머가 시간을 셉니다.</li>
+                            <li>현재값(T) == 설정값에 도달하면 출력(접점)이 ON!</li>
+                            <li>중간에 입력을 끄면? <b>초기화(0) 됩니다.</b></li>
+                        </ul>
+                    </div>
+                    <div class="code-block">TON T0 30</div>
+                    <p class="text-sm text-gray-500">* 30은 3초를 의미합니다 (0.1초 단위)</p>
+                </div>
+
+                <div class="sim-box">
+                    <h3 class="font-bold text-gray-700 mb-4">🖐️ 직접 눌러보세요! (목표: 30)</h3>
+                    <div id="tonLamp" class="plc-lamp flex items-center justify-center text-xs text-white font-bold mb-4">OFF</div>
+                    <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
+                        <div id="tonBar" class="bg-green-500 h-4 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p class="font-mono text-xl mb-4">T0: <span id="tonValue" class="text-blue-600">0</span> / 30</p>
+                    <button id="tonBtn" class="sim-btn w-full" onmousedown="startTon()" onmouseup="stopTon()" onmouseleave="stopTon()">
+                        P0 (푸시버튼) 누르고 있기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">2. TOFF (Off-Delay Timer)</h2>
+            <p class="text-lg text-gray-600 mb-4">입력이 들어오면 즉시 켜지고, <span class="highlight">입력이 꺼진 뒤 설정 시간 후에</span> 꺼집니다.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-200 mb-4">
+                        <h3 class="font-bold text-purple-700 mb-2">💡 핵심 동작</h3>
+                        <ul class="list-disc list-inside text-gray-700 space-y-2">
+                            <li>입력(P1)이 ON 되면? <b>출력도 즉시 ON!</b></li>
+                            <li>입력을 끄면(OFF)? 그때부터 시간을 셉니다.</li>
+                            <li>설정 시간이 지나면 출력이 꺼집니다.</li>
+                            <li>자동차 실내등이나 화장실 환풍기에 쓰여요!</li>
+                        </ul>
+                    </div>
+                    <div class="code-block">TOFF T1 30</div>
+                </div>
+
+                <div class="sim-box">
+                    <h3 class="font-bold text-gray-700 mb-4">🖐️ 눌렀다 떼보세요! (목표: 30)</h3>
+                    <div id="toffLamp" class="plc-lamp flex items-center justify-center text-xs text-white font-bold mb-4">OFF</div>
+                    <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
+                        <div id="toffBar" class="bg-green-500 h-4 rounded-full" style="width: 0%"></div>
+                    </div>
+                    <p class="font-mono text-xl mb-4">T1: <span id="toffValue" class="text-blue-600">0</span> / 30</p>
+                    <button id="toffBtn" class="sim-btn w-full" onmousedown="triggerToffInput(true)" onmouseup="triggerToffInput(false)" onmouseleave="triggerToffInput(false)">
+                        P1 (푸시버튼) 누르기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">3. XG5000에서 작성하기</h2>
+            <div class="flex flex-col items-center">
+                <div class="bg-gray-800 text-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
+                    <div class="flex items-center mb-4 border-b border-gray-600 pb-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span class="ml-4 text-sm text-gray-400">LD 프로그램 예시</span>
+                    </div>
+                    <div class="font-mono text-lg leading-relaxed">
+                        <div class="flex"><span class="text-blue-400">│</span> <span class="text-green-400">--[ P00 ]--</span><span class="text-yellow-400">[ TON T000 30 ]--</span> <span class="text-blue-400">│</span></div>
+                        <div class="flex"><span class="text-blue-400">│</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-blue-400">│</span></div>
+                        <div class="flex"><span class="text-blue-400">│</span> <span class="text-green-400">--[ T000 ]--</span><span class="text-red-400">-----------------( P20 )--</span> <span class="text-blue-400">│</span></div>
+                        <div class="mt-4 text-gray-400 text-sm">// P00을 3초간 누르면 P20(램프) 점등</div>
+                    </div>
+                </div>
+                <div class="mt-8 bg-blue-50 p-6 rounded-xl text-center w-full">
+                    <p class="text-xl font-bold text-blue-800">🤔 선생님의 꿀팁!</p>
+                    <p class="text-gray-700 mt-2">"명령어 입력창(F10)을 열고 <span class="bg-white px-2 py-1 rounded border">TON</span>을 치면 쉽게 입력할 수 있어요!"</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">형성평가 Q1</h2>
+                <span class="bg-blue-100 text-blue-800 px-4 py-1 rounded-full font-bold">1/5</span>
+            </div>
+            <p class="text-2xl mb-8">다음 중 입력 신호가 켜지고 <span class="font-bold text-red-500">설정 시간 후에</span> 출력이 켜지는 타이머는?</p>
+            <div class="space-y-2">
+                <div class="quiz-option" onclick="checkAnswer(this, true)">1. TON (On-Delay)</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">2. TOFF (Off-Delay)</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">3. CTU (Counter Up)</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">4. TMON (Monostable)</div>
+            </div>
+            <div class="feedback hidden mt-4 p-4 rounded-lg font-bold"></div>
+        </div>
+
+        <div class="slide">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">형성평가 Q2</h2>
+                <span class="bg-blue-100 text-blue-800 px-4 py-1 rounded-full font-bold">2/5</span>
+            </div>
+            <p class="text-2xl mb-8">XG5000에서 타이머 설정값이 <span class="font-bold text-blue-600">50</span>일 때, 실제 시간은 몇 초인가? (단, 100ms 타이머 기준)</p>
+            <div class="space-y-2">
+                <div class="quiz-option" onclick="checkAnswer(this, false)">1. 0.5초</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">2. 1초</div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">3. 5초</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">4. 50초</div>
+            </div>
+            <div class="feedback hidden mt-4 p-4 rounded-lg font-bold"></div>
+        </div>
+
+        <div class="slide">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">형성평가 Q3</h2>
+                <span class="bg-blue-100 text-blue-800 px-4 py-1 rounded-full font-bold">3/5</span>
+            </div>
+            <p class="text-2xl mb-8">TON 타이머 동작 중 입력 신호가 꺼지면(OFF) 현재값은 어떻게 되는가?</p>
+            <div class="space-y-2">
+                <div class="quiz-option" onclick="checkAnswer(this, false)">1. 현재값을 유지한다.</div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">2. 0으로 초기화된다.</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">3. 설정값까지 계속 증가한다.</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">4. 최댓값이 된다.</div>
+            </div>
+            <div class="feedback hidden mt-4 p-4 rounded-lg font-bold"></div>
+        </div>
+
+        <div class="slide">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">형성평가 Q4</h2>
+                <span class="bg-blue-100 text-blue-800 px-4 py-1 rounded-full font-bold">4/5</span>
+            </div>
+            <p class="text-2xl mb-8">다음 상황에 가장 적합한 타이머 종류는?<br>
+                <span class="text-base text-gray-500 bg-gray-100 p-2 rounded block mt-2">"화장실 스위치를 끄고 나가더라도, 환풍기가 1분 동안 더 돌다가 꺼지게 하고 싶다."</span>
+            </p>
+            <div class="space-y-2">
+                <div class="quiz-option" onclick="checkAnswer(this, false)">1. TON</div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">2. TOFF</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">3. TRTG</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">4. CTD</div>
+            </div>
+            <div class="feedback hidden mt-4 p-4 rounded-lg font-bold"></div>
+        </div>
+
+        <div class="slide">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-800">형성평가 Q5</h2>
+                <span class="bg-blue-100 text-blue-800 px-4 py-1 rounded-full font-bold">5/5</span>
+            </div>
+            <p class="text-2xl mb-8">다음 중 문법적으로 올바른 XG5000 타이머 명령어 형식은?</p>
+            <div class="space-y-2">
+                <div class="quiz-option" onclick="checkAnswer(this, false)">1. TON 30 T0</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">2. TIMER T0 30</div>
+                <div class="quiz-option" onclick="checkAnswer(this, true)">3. TON T0 30</div>
+                <div class="quiz-option" onclick="checkAnswer(this, false)">4. T0 TON 30</div>
+            </div>
+            <div class="feedback hidden mt-4 p-4 rounded-lg font-bold"></div>
+        </div>
+
+        <div class="slide">
+            <div class="h-full flex flex-col justify-center items-center text-center">
+                <span class="text-6xl mb-6">🎉</span>
+                <h1 class="text-4xl font-bold text-gray-800 mb-6">수고했습니다!</h1>
+                <p class="text-xl text-gray-600 mb-8">오늘 배운 TON과 TOFF의 차이점을 꼭 기억하세요.</p>
+                <div class="bg-green-50 px-8 py-6 rounded-xl border border-green-200 mb-8">
+                    <p class="text-green-800 text-lg">
+                        ✅ TON: 누르고 기다려야 켜짐<br>
+                        ✅ TOFF: 떼고 나서 기다려야 꺼짐
+                    </p>
+                </div>
+                <p class="text-lg">맞춘 문제 수: <span id="finalScore" class="text-blue-600 font-bold text-2xl">0</span> / 5</p>
+                <button onclick="location.reload()" class="mt-8 bg-gray-800 text-white px-6 py-3 rounded-full hover:bg-black transition">
+                    🔄 처음부터 다시하기
+                </button>
+            </div>
+        </div>
+
+        <button class="nav-btn prev-btn" onclick="changeSlide(-1)" id="prevBtn" disabled>❮ 이전</button>
+        <button class="nav-btn next-btn" onclick="changeSlide(1)" id="nextBtn">다음 ❯</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const progressBar = document.getElementById('progressBar');
+        const totalSlides = slides.length;
+        let score = 0;
+
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                if (index === currentSlide) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+
+            // 버튼 상태 업데이트
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+            
+            // 마지막 슬라이드에서 점수 표시
+            if (currentSlide === totalSlides - 1) {
+                document.getElementById('nextBtn').style.display = 'none';
+                document.getElementById('finalScore').innerText = score;
+            } else {
+                document.getElementById('nextBtn').style.display = 'block';
+            }
+
+            // 진행바 업데이트
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        function changeSlide(direction) {
+            currentSlide += direction;
+            if (currentSlide < 0) currentSlide = 0;
+            if (currentSlide >= totalSlides) currentSlide = totalSlides - 1;
+            updateSlide();
+        }
+
+        // --- TON 시뮬레이션 로직 ---
+        let tonTimer;
+        let tonValue = 0;
+        const tonSet = 30; // 3초
+
+        function startTon() {
+            const btn = document.getElementById('tonBtn');
+            btn.classList.add('bg-blue-700');
+            
+            if (tonTimer) clearInterval(tonTimer);
+            
+            tonTimer = setInterval(() => {
+                if (tonValue < tonSet) {
+                    tonValue++;
+                    updateTonUI();
+                } else {
+                    // 타이머 완료
+                    document.getElementById('tonLamp').classList.add('on');
+                    document.getElementById('tonLamp').innerText = "ON";
+                }
+            }, 50); // 속도 조절 (빠른 피드백을 위해 실제 0.1초보다 빠르게)
+        }
+
+        function stopTon() {
+            const btn = document.getElementById('tonBtn');
+            btn.classList.remove('bg-blue-700');
+            
+            clearInterval(tonTimer);
+            tonValue = 0; // TON은 떼면 초기화
+            updateTonUI();
+            document.getElementById('tonLamp').classList.remove('on');
+            document.getElementById('tonLamp').innerText = "OFF";
+        }
+
+        function updateTonUI() {
+            document.getElementById('tonValue').innerText = tonValue;
+            const percent = (tonValue / tonSet) * 100;
+            document.getElementById('tonBar').style.width = `${percent}%`;
+        }
+
+        // --- TOFF 시뮬레이션 로직 ---
+        let toffTimer;
+        let toffValue = 0;
+        const toffSet = 30;
+        let isInputOn = false;
+
+        function triggerToffInput(isOn) {
+            const btn = document.getElementById('toffBtn');
+            const lamp = document.getElementById('toffLamp');
+
+            if (isOn) {
+                // 입력 ON 시
+                isInputOn = true;
+                btn.classList.add('bg-blue-700');
+                
+                // TOFF는 입력 들어오면 바로 램프 ON, 타이머값 0 유지
+                lamp.classList.add('on');
+                lamp.innerText = "ON";
+                clearInterval(toffTimer);
+                toffValue = 0;
+                updateToffUI();
+
+            } else {
+                // 입력 OFF 시
+                if (!isInputOn) return; // 이미 꺼져있으면 무시
+                isInputOn = false;
+                btn.classList.remove('bg-blue-700');
+
+                // 램프는 켜져있는 상태에서 타이머 시작
+                if (toffTimer) clearInterval(toffTimer);
+                toffTimer = setInterval(() => {
+                    if (toffValue < toffSet) {
+                        toffValue++;
+                        updateToffUI();
+                    } else {
+                        // 타이머 완료 시 램프 OFF
+                        clearInterval(toffTimer);
+                        lamp.classList.remove('on');
+                        lamp.innerText = "OFF";
+                    }
+                }, 50);
+            }
+        }
+
+        function updateToffUI() {
+            document.getElementById('toffValue').innerText = toffValue;
+            const percent = (toffValue / toffSet) * 100;
+            document.getElementById('toffBar').style.width = `${percent}%`;
+        }
+
+        // --- 퀴즈 로직 ---
+        function checkAnswer(element, isCorrect) {
+            // 이미 답을 고른 경우 무시 (형제 요소 확인)
+            const parent = element.parentElement;
+            if (parent.dataset.answered === "true") return;
+            
+            parent.dataset.answered = "true";
+            const feedback = parent.nextElementSibling;
+            feedback.classList.remove('hidden');
+
+            if (isCorrect) {
+                element.classList.add('correct');
+                feedback.innerHTML = "🎉 정답입니다!";
+                feedback.classList.add('bg-green-100', 'text-green-800');
+                score++;
+            } else {
+                element.classList.add('wrong');
+                feedback.innerHTML = "❌ 오답입니다. 다시 내용을 복습해보세요.";
+                feedback.classList.add('bg-red-100', 'text-red-800');
+                
+                // 정답 표시해주기
+                // (Optional: 실제 구현 시에는 정답인 요소에 correct 클래스 추가 가능)
+            }
+        }
+
+        // 초기화
+        updateSlide();
+    </script>
+</body>
+</html>
